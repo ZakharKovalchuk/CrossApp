@@ -19,7 +19,6 @@ public sealed class BookCopy
         IsIssued = isIssued;
     }
 
-    // Фабричний метод для створення нового примірника (інваріанти 1, 2)
     public static BookCopy Create(string id, string isbn, string title, int year, bool isIssued = false)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -37,7 +36,6 @@ public sealed class BookCopy
         return new BookCopy(id.Trim(), isbn.Trim().ToUpperInvariant(), title.Trim(), year, isIssued);
     }
 
-    // Бізнес-операція видачі примірника (інваріант 3)
     public void Issue()
     {
         if (IsIssued)
@@ -46,7 +44,6 @@ public sealed class BookCopy
         IsIssued = true;
     }
 
-    // Бізнес-операція повернення примірника (інваріант 4)
     public void Return()
     {
         if (!IsIssued)
@@ -55,11 +52,31 @@ public sealed class BookCopy
         IsIssued = false;
     }
 
-    // Мапінг у DTO та відновлення з DTO через фабрику
     public BookDto ToDto() => new(Id, Isbn, Title, Year);
 
     public static BookCopy FromDto(BookDto dto) =>
         Create(dto.Id, dto.Isbn, dto.Title, dto.Year);
+
+    // Додаткове завдання 1: перетворення результатів імпорту у валідні сутності з фіксацією помилок
+    public static (IReadOnlyList<BookCopy> ValidEntities, IReadOnlyList<string> DomainErrors) FromImportResult(ImportResult<BookDto> importResult)
+    {
+        var entities = new List<BookCopy>();
+        var errors = new List<string>(importResult.Errors);
+
+        foreach (var dto in importResult.Items)
+        {
+            try
+            {
+                entities.Add(FromDto(dto));
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Доменна помилка для запису {dto.Id}: {ex.Message}");
+            }
+        }
+
+        return (entities.AsReadOnly(), errors.AsReadOnly());
+    }
 
     public override string ToString() =>
         $"{Id} [{Isbn}] \"{Title}\" ({Year}) - Стан: {(IsIssued ? "Видано" : "В наявності")}";

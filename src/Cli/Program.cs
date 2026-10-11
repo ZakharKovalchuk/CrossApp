@@ -1,5 +1,7 @@
 ﻿using System.Text;
 using Core.Domain;
+using Core.Dto;
+using Core.Import;
 
 Console.OutputEncoding = Encoding.UTF8;
 
@@ -19,38 +21,55 @@ Console.WriteLine($"Стан примірника    : {copy}");
 Console.WriteLine();
 Console.WriteLine("=== СЦЕНАРІЙ 2: ПЕРЕВІРКА ЗАХИСТУ ІНВАРІАНТІВ ===");
 
-// 1. Порожній ISBN при створенні
 TryDo("Створення з порожнім ISBN", () => 
     BookCopy.Create("BC-002", "", "Refactoring", 2018));
 
-// 2. Некоректний рік видання
 TryDo("Некоректний рік видання (3000)", () => 
     BookCopy.Create("BC-003", "978-1111", "Future Book", 3000));
 
-// 3. Повторна видача вже виданого примірника
 var busyCopy = BookCopy.Create("BC-004", "978-2222", "Design Patterns", 1994);
 busyCopy.Issue();
 TryDo("Повторна видача зайнятого примірника", () => 
     busyCopy.Issue());
 
-// 4. Повернення примірника, який не був виданий
 var freeCopy = BookCopy.Create("BC-005", "978-3333", "C# in Depth", 2019);
 TryDo("Повернення невиданого примірника", () => 
     freeCopy.Return());
 
-// 5. Закриття видачі датою, яка раніше за дату видачі
 var testCopy = BookCopy.Create("BC-006", "978-4444", "Algorithms", 2011);
 var testLoan = Loan.Open("L-102", testCopy, "READER-07", new DateTime(2026, 10, 5));
 TryDo("Дата повернення раніша за дату видачі", () => 
     testLoan.Close(new DateTime(2026, 10, 1)));
 
-// 6. Повторне закриття вже закритої видачі
 testLoan.Close(new DateTime(2026, 10, 8));
 TryDo("Повторне закриття закритої видачі", () => 
     testLoan.Close(new DateTime(2026, 10, 9)));
 
 Console.WriteLine();
-Console.WriteLine($"Фінальний стан зайнятого примірника: {busyCopy}");
+Console.WriteLine("=== ДОДАТКОВІ ЗАВДАННЯ ===");
+
+// 1. Демонстрація переходів станів через enum LoanStatus
+Console.WriteLine("1. Перевірка невалідного переходу стану видачі:");
+var overdueCopy = BookCopy.Create("BC-007", "978-5555", "CLR via C#", 2012);
+var overdueLoan = Loan.Open("L-103", overdueCopy, "READER-11", new DateTime(2026, 9, 1));
+overdueLoan.ChangeStatus(LoanStatus.Overdue);
+Console.WriteLine($"  Переведено у прострочений стан: {overdueLoan}");
+overdueLoan.Close(new DateTime(2026, 10, 11));
+Console.WriteLine($"  Успішно закрито з простроченого: {overdueLoan}");
+TryDo("Спроба перевести вже закриту видачу в Overdue", () => 
+    overdueLoan.ChangeStatus(LoanStatus.Overdue));
+
+// 2. Демонстрація перетворення ImportResult<BookDto> у доменні сутності
+Console.WriteLine();
+Console.WriteLine("2. Зв'язок із лабораторною 3 (ImportResult -> BookCopy):");
+string samplePath = Path.Combine("data", "sample.csv");
+if (File.Exists(samplePath))
+{
+    var importResult = BookCsvImporter.Load(samplePath);
+    var (validCopies, allErrors) = BookCopy.FromImportResult(importResult);
+    Console.WriteLine($"  Успішно створено доменних сутностей: {validCopies.Count}");
+    Console.WriteLine($"  Загальна кількість помилок (CSV + Домен): {allErrors.Count}");
+}
 
 static void TryDo(string title, Action action)
 {
