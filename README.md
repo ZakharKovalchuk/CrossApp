@@ -46,6 +46,18 @@
   * `FileBookStore` — збереження стану у JSON-файлі (`data/catalog.json`) з кешуванням та збереженням змін на диск (`Flush`).
 * **Сервісний шар:** `LendingService` (`src/Core/Services/LendingService.cs`) — бізнес-операції реєстрації, видачі та повернення книг без прив'язки до способу зберігання.
 * **Composition Root:** `src/Cli/Program.cs` — точка конфігурації, де реалізація сховища обирається аргументом `--file`.
+
+## Лабораторна робота 6: Доменні події, делегати Action/Func, лямбди
+
+* **Подія сервісу:** `public event EventHandler<LibraryChangedEventArgs>? Changed;` у класі `LendingService`.
+* **Типи даних події:**
+  * `LibraryChangeKind` (`Core.Events`) — перелічення операцій: `BookAdded`, `CopyIssued`, `CopyReturned`.
+  * `LibraryChangedEventArgs` (`Core.Events`) — клас аргументів події на базі `EventArgs` із фіксацією `CopyId`, `Kind`, `ReaderId`, `DueDate` та мітки часу `At`.
+* **Підписники в Cli:**
+  1. Локальний метод `OnLibraryChanged` — форматує повідомлення, виводить у консоль і записує у файл `logs/app.log`.
+  2. Лямбда-вираз `(_, _) => changes++` — замикання над локальною змінною для підрахунку подій.
+* **Відписка (`-=`):** Продемонстровано відключення основного логера без переривання роботи лічильника.
+* **Делегат замість події:** Використано `Func<BookCopy, bool>` у методі `FindAll` для виконання фільтрації за критерієм викликача.
 ## Збірка та запуск
 
 ### Збірка всього рішення
